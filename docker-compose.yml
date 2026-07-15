@@ -1,0 +1,73 @@
+services:
+  # ── Source 3: on-prem SQL Server (medical claims OLTP) ──────────────
+  sqlserver-claims:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver-claims
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+    ports:
+      - "1433:1433"
+    volumes:
+      - claims_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      retries: 10
+
+  # ── Source 4: on-prem SQL Server (member / provider master) ─────────
+  sqlserver-members:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver-members
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+    ports:
+      - "1434:1433"
+    volumes:
+      - members_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      retries: 10
+
+  # One-time job: create databases + tables on both servers
+  sqlserver-init:
+    build: ./data_sources/sqlserver
+    container_name: sqlserver-init
+    command: python init_databases.py
+    environment:
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      CLAIMS_HOST: sqlserver-claims
+      MEMBERS_HOST: sqlserver-members
+    depends_on:
+      sqlserver-claims:
+        condition: service_healthy
+      sqlserver-members:
+        condition: service_healthy
+
+  # Continuous job: inserts new rows into both databases every 10 minutes
+  sqlserver-feeder:
+    build: ./data_sources/sqlserver
+    container_name: sqlserver-feeder
+    command: python feed_databases.py --interval-seconds 600
+    environment:
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      CLAIMS_HOST: sqlserver-claims
+      MEMBERS_HOST: sqlserver-members
+    depends_on:
+      sqlserver-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  # ── Source 2: enrollment events REST API ────────────────────────────
+  enrollment-api:
+    build: ./data_sources/api_source
+    container_name: enrollment-api
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+volumes:
+  claims_data:
+  members_data:
