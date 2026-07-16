@@ -5,3 +5,8 @@ __pycache__/
 data/landing/
 logs/
 .DS_Store
+
+# dbt artifacts
+healthcare_dbt/target/
+healthcare_dbt/dbt_packages/
+healthcare_dbt/logs/

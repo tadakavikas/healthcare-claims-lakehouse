@@ -1,0 +1,14 @@
+# Declares the bronze tables as dbt "sources" so models can reference them
+# with {{ source('bronze', '<table>') }} instead of hardcoding names.
+version: 2
+
+sources:
+  - name: bronze
+    database: HEALTHCARE_LAKEHOUSE
+    schema: BRONZE
+    tables:
+      - name: bronze_pharmacy_claims
+      - name: bronze_enrollment_events
+      - name: bronze_medical_claims
+      - name: bronze_members
+      - name: bronze_providers
