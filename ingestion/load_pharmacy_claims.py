@@ -56,10 +56,10 @@ def main() -> None:
         cur.execute("USE DATABASE HEALTHCARE_LAKEHOUSE")
         cur.execute("USE SCHEMA BRONZE")
 
-        for path in csv_files:
-            abspath = os.path.abspath(path)
-            cur.execute(f"PUT 'file://{abspath}' {STAGE} AUTO_COMPRESS=TRUE")
-        log.info("staged %d files", len(csv_files))
+
+        csv_dir_abs = os.path.abspath(CSV_DIR)
+        cur.execute(f"PUT 'file://{csv_dir_abs}/*.csv' {STAGE} AUTO_COMPRESS=TRUE PARALLEL=8")
+        log.info("staged %d files via wildcard PUT", len(csv_files))
 
         cur.execute(f"CREATE OR REPLACE TRANSIENT TABLE {STAGING_TABLE} LIKE {BRONZE_TABLE}")
         cur.execute(f"""
