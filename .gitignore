@@ -10,3 +10,6 @@ logs/
 healthcare_dbt/target/
 healthcare_dbt/dbt_packages/
 healthcare_dbt/logs/
+
+# Airflow runtime artifacts
+airflow/logs/

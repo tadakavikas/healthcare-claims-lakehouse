@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 from datetime import datetime, timedelta
 
 import requests
@@ -33,7 +34,7 @@ from snowflake_config import get_connection_params
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("load_enrollment")
 
-API_URL = "http://localhost:8000/api/v1/enrollment-events"
+API_URL = os.environ.get("ENROLLMENT_API_URL", "http://localhost:8000/api/v1/enrollment-events")
 SOURCE_NAME = "enrollment_api"
 BRONZE_TABLE = "BRONZE.bronze_enrollment_events"
 STAGING_TABLE = "BRONZE.stg_load_enrollment_events"
